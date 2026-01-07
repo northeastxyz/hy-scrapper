@@ -1,8 +1,8 @@
-name: Update Badminton
+name: Update Badminton FlyTV
 on:
   schedule:
-    - cron: '0 */1 * * *'
-  workflow_dispatch:
+    - cron: '0 */1 * * *' # Jalan otomatis setiap 1 jam
+  workflow_dispatch:      # Tombol manual di tab Actions
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,10 +18,10 @@ jobs:
         run: |
           pip install requests
           python huya_grabber.py
-      - name: Push to Repo
+      - name: Update Repository
         run: |
-          git config --local user.email "action@github.com"
+          git config --local user.email "bot@github.com"
           git config --local user.name "HuyaBot"
           git add live.m3u
-          git commit -m "Update Badminton $(date)" || exit 0
+          git commit -m "Update Link Badminton via FlyTV Proxy" || exit 0
           git push
