@@ -1,29 +1,46 @@
 name: Update Huya Playlist
+
 on:
   schedule:
-    - cron: '0 */2 * * *' # Berjalan otomatis tiap 2 jam
-  workflow_dispatch:      # Tombol untuk jalan manual
+    - cron: '0 */2 * * *' # Berjalan otomatis setiap 2 jam
+  workflow_dispatch:      # Memungkinkan Anda menjalankan manual lewat tombol 'Run workflow'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    # Memberikan izin kepada bot untuk menulis/update file di repo
     permissions:
       contents: write
+      
     steps:
-      - name: Checkout code
+      - name: Checkout repository code
         uses: actions/checkout@v3
-      - name: Set up Python
+
+      - name: Set up Python environment
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Install dependencies
-        run: pip install requests
-      - name: Run script
-        run: python huya_grabber.py
-      - name: Commit and Push
+
+      - name: Install Python dependencies
         run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run Huya Grabber Script
+        run: python huya_grabber.py
+
+      - name: Commit and Push Changes
+        run: |
+          # Konfigurasi identitas bot GitHub
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add live.m3u
-          git commit -m "Update Huya Playlist" || exit 0
+          
+          # Menambahkan file live.m3u (dan file lainnya jika ada perubahan)
+          git add -A
+          
+          # Melakukan commit hanya jika ada perubahan file
+          git commit -m "Update Huya Playlist: $(date)" || echo "No changes to commit"
+          
+          # Push hasil perubahan kembali ke repositori
           git push
