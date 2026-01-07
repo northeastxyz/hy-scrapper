@@ -1,35 +1,27 @@
-name: Update Huya Playlist Custom Proxy
-
+name: Update Badminton
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 */1 * * *' # Cek setiap 1 jam agar link tidak basi
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-
-      - name: Setup Python
+      - uses: actions/checkout@v3
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
-      - name: Install Dependencies
-        run: pip install requests cloudscraper
-
-      - name: Run Script
-        run: python huya_grabber.py
-
-      - name: Commit and Push
+      - name: Run
         run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add -A
-          git commit -m "Update via Custom Proxy: $(date)" || echo "No changes"
+          pip install requests
+          python huya_grabber.py
+      - name: Push
+        run: |
+          git config --local user.email "bot@github.com"
+          git config --local user.name "HuyaBot"
+          git add live.m3u
+          git commit -m "Update Badminton Link" || exit 0
           git push
