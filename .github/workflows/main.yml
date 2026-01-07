@@ -1,7 +1,7 @@
 name: Update Badminton
 on:
   schedule:
-    - cron: '0 */1 * * *' # Cek setiap 1 jam agar link tidak basi
+    - cron: '0 */1 * * *'
   workflow_dispatch:
 jobs:
   build:
@@ -10,18 +10,18 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Run
+      - name: Install & Run
         run: |
           pip install requests
           python huya_grabber.py
-      - name: Push
+      - name: Push to Repo
         run: |
-          git config --local user.email "bot@github.com"
+          git config --local user.email "action@github.com"
           git config --local user.name "HuyaBot"
           git add live.m3u
-          git commit -m "Update Badminton Link" || exit 0
+          git commit -m "Update Badminton $(date)" || exit 0
           git push
