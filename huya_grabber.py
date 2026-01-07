@@ -6,78 +6,61 @@ import json
 import random
 
 def get_huya_m3u8(room_id):
-    # Proxy CORS yang Anda berikan
+    # Menggunakan Proxy FlyTV seperti yang Anda minta sebelumnya untuk bypass IP GitHub
     proxy_base = "https://anywhere.flytv.my.id/"
-    # Target API Huya
-    target_api = f'https://mp.huya.com/cache.php?m=Live&do=profileRoom&roomid={room_id}'
-    
-    # Gabungkan proxy dengan target
-    url = f"{proxy_base}{target_api}"
+    api_url = f"https://mp.huya.com/cache.php?m=Live&do=profileRoom&roomid={room_id}"
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
-        'Referer': 'https://m.huya.com/',
-        # Menambahkan header palsu IP China untuk memperkuat bypass
-        'X-Forwarded-For': f'117.{random.randint(10,200)}.{random.randint(10,200)}.{random.randint(10,200)}',
-        'Accept-Language': 'zh-CN,zh;q=0.9'
+        'Referer': f'https://m.huya.com/{room_id}'
     }
-    
-    try:
-        # Request melalui proxy FlyTV
-        response = requests.get(url, headers=headers, timeout=20)
-        res = response.json()
-        
-        if res.get('status') == 200 and res['data']['liveStatus'] == 'ON':
-            # Mengambil informasi stream HLS (m3u8)
-            # Skrip ini mencoba mencari di beberapa lokasi data sekaligus
-            stream_info = None
-            try:
-                stream_info = res['data']['stream']['hls']['multiLine'][0]['vStreamInfo'][0]
-            except:
-                try:
-                    stream_info = res['data']['stream']['baseStamp'][0]['vStreamInfo'][0]
-                except:
-                    return None
 
-            if stream_info:
-                sStreamName = stream_info['sStreamName']
-                sAntiCode = stream_info.get('sHlsAntiCode') or stream_info.get('sFlvAntiCode')
-                
-                # Parsing parameter wsTime dan ct dari AntiCode
-                ws_time = re.search(r'wsTime=([a-fA-F0-9]+)', sAntiCode).group(1)
-                ct = re.search(r'ct=([a-fA-F0-9]+)', sAntiCode).group(1)
-                
-                # Kalkulasi Signature Signature (Wajib agar link bisa diputar)
-                seq_id = str(int(time.time() * 1000))
-                hash_payload = f"{seq_id}|{ct}|{sStreamName}|{ws_time}"
-                ws_secret = hashlib.md5(hash_payload.encode()).hexdigest()
-                
-                # UID acak agar tidak terdeteksi sebagai satu user tunggal
-                uid = random.randint(1000000, 9999999)
-                
-                # Merakit URL M3U8 Final
-                final_url = (
-                    f"{stream_info['sHlsUrl']}/{sStreamName}.m3u8?"
-                    f"wsSecret={ws_secret}&wsTime={ws_time}&seqid={seq_id}&ctype={ct}&ver=1&u={uid}&t=100"
-                )
-                return final_url.replace("http://", "https://")
-                
+    try:
+        # Mengambil data melalui proxy
+        full_url = proxy_base + api_url
+        response = requests.get(full_url, headers=headers, timeout=15)
+        data = response.json()
+
+        if data.get('status') == 200 and data['data']['liveStatus'] == 'ON':
+            # Mengikuti logika StreamCap: Mengambil stream m3u8 dari multiLine
+            stream_info = data['data']['stream']['hls']['multiLine'][0]['vStreamInfo'][0]
+            
+            sStreamName = stream_info['sStreamName']
+            sAntiCode = stream_info.get('sHlsAntiCode') or stream_info.get('sFlvAntiCode')
+            
+            # Analisis Kode Enkripsi (Logic by StreamCap)
+            # wsTime adalah batas waktu link, ct adalah client type
+            ws_time = re.search(r'wsTime=([a-fA-F0-9]+)', sAntiCode).group(1)
+            ct = re.search(r'ct=([a-fA-F0-9]+)', sAntiCode).group(1)
+            
+            # Membuat Signature yang valid
+            # StreamCap menekankan penggunaan timestamp milidetik (seqid)
+            seq_id = str(int(time.time() * 1000))
+            # Format signature Huya: md5(seqid|ct|streamname|wstime)
+            hash_payload = f"{seq_id}|{ct}|{sStreamName}|{ws_time}"
+            ws_secret = hashlib.md5(hash_payload.encode()).hexdigest()
+            
+            # Merakit URL final (HLS/m3u8)
+            # Parameter 'u' dan 't' seringkali diperlukan untuk bypass deteksi bot
+            uid = random.randint(12345678, 87654321)
+            final_url = f"{stream_info['sHlsUrl']}/{sStreamName}.m3u8?wsSecret={ws_secret}&wsTime={ws_time}&seqid={seq_id}&ctype={ct}&ver=1&u={uid}&t=100"
+            
+            return final_url.replace("http://", "https://")
+
     except Exception as e:
-        print(f"Error saat menggunakan proxy FlyTV: {e}")
+        print(f"Error logic StreamCap: {e}")
     return None
 
-# ID Room Badminton spesifik Anda
+# ID Badminton Spesifik
 room_id = "30805928"
-link = get_huya_m3u8(room_id)
+m3u8_link = get_huya_m3u8(room_id)
 
-# Simpan ke file live.m3u
 with open("live.m3u", "w", encoding="utf-8") as f:
     f.write("#EXTM3U\n")
-    if link:
-        f.write(f"#EXTINF:-1, Badminton Huya {room_id}\n")
-        f.write(f"{link}\n")
-        print(f"Berhasil! Link m3u8 didapat: {link}")
+    if m3u8_link:
+        f.write(f"#EXTINF:-1, Badminton Live Huya\n")
+        f.write(f"{m3u8_link}\n")
+        print(f"SUCCESS: Link didapat untuk {room_id}")
     else:
-        f.write("#EXTINF:-1, Badminton Offline atau Proxy Blocked\n")
-        f.write("https://example.com/offline.mp4\n")
-        print("Gagal mendapatkan link. Cek apakah room sedang live.")
+        f.write("#EXTINF:-1, Badminton Offline atau Enkripsi Gagal\n")
+        f.write("https://raw.githubusercontent.com/empty/video.mp4\n")
