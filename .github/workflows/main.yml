@@ -1,8 +1,8 @@
-name: Update Badminton FlyTV
+name: StreamCap Huya Update
 on:
   schedule:
-    - cron: '0 */1 * * *' # Jalan otomatis setiap 1 jam
-  workflow_dispatch:      # Tombol manual di tab Actions
+    - cron: '0 */1 * * *'
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,14 +14,14 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-      - name: Install & Run
-        run: |
-          pip install requests
-          python huya_grabber.py
-      - name: Update Repository
+      - name: Install Requests
+        run: pip install requests
+      - name: Run Scraper
+        run: python huya_grabber.py
+      - name: Push Changes
         run: |
           git config --local user.email "bot@github.com"
           git config --local user.name "HuyaBot"
           git add live.m3u
-          git commit -m "Update Link Badminton via FlyTV Proxy" || exit 0
+          git commit -m "Update Huya m3u8 via StreamCap Logic" || exit 0
           git push
